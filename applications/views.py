@@ -1,3 +1,193 @@
-from django.shortcuts import render
+from rest_framework.views import APIView
 
-# Create your views here.
+from rest_framework.response import Response
+
+from rest_framework import status
+
+from rest_framework.permissions import IsAuthenticated
+
+from .models import JobApplication
+
+from .serializers import JobApplicationSerializer
+
+from candidate.models import CandidateProfile
+
+from jobs.models import Job
+
+from employer.models import EmployerProfile
+
+
+class ApplyJobView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, job_id):
+
+        if request.user.role != 'candidate':
+
+            return Response({
+
+                'error': 'Only candidates can apply for jobs'
+
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+
+            candidate_profile = CandidateProfile.objects.get(
+                user=request.user
+            )
+
+        except CandidateProfile.DoesNotExist:
+
+            return Response({
+
+                'error': 'Candidate profile not found'
+
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+
+            job = Job.objects.get(
+                id=job_id
+            )
+
+        except Job.DoesNotExist:
+
+            return Response({
+
+                'error': 'Job not found'
+
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        already_applied = JobApplication.objects.filter(
+
+            candidate=candidate_profile,
+
+            job=job
+
+        ).exists()
+
+        if already_applied:
+
+            return Response({
+
+                'error': 'Already applied to this job'
+
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        application = JobApplication.objects.create(
+
+            candidate=candidate_profile,
+
+            job=job
+
+        )
+
+        serializer = JobApplicationSerializer(
+            application
+        )
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class MyApplicationsView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        if request.user.role != 'candidate':
+
+            return Response({
+
+                'error': 'Only candidates allowed'
+
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+
+            candidate_profile = CandidateProfile.objects.get(
+                user=request.user
+            )
+
+        except CandidateProfile.DoesNotExist:
+
+            return Response({
+
+                'error': 'Candidate profile not found'
+
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        applications = JobApplication.objects.filter(
+
+            candidate=candidate_profile
+
+        )
+
+        serializer = JobApplicationSerializer(
+
+            applications,
+
+            many=True
+        )
+
+        return Response(serializer.data)
+    
+class JobApplicantsView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, job_id):
+
+        if request.user.role != 'employer':
+
+            return Response({
+
+                'error': 'Only employers allowed'
+
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+
+            employer_profile = EmployerProfile.objects.get(
+                user=request.user
+            )
+
+        except EmployerProfile.DoesNotExist:
+
+            return Response({
+
+                'error': 'Employer profile not found'
+
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+
+            job = Job.objects.get(
+                id=job_id,
+                employer=employer_profile
+            )
+
+        except Job.DoesNotExist:
+
+            return Response({
+
+                'error': 'Job not found or unauthorized'
+
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        applications = JobApplication.objects.filter(
+            job=job
+        )
+
+        serializer = JobApplicationSerializer(
+
+            applications,
+
+            many=True
+        )
+
+        return Response(serializer.data)
