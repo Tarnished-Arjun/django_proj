@@ -1,155 +1,47 @@
-from rest_framework.views import APIView
-
-from rest_framework.response import Response
-
-from rest_framework import status
-
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Job
-
 from .serializers import JobSerializer
 
 from employer.models import EmployerProfile
 
+class JobListCreateView(
+generics.ListCreateAPIView
+):
 
-class JobListCreateView(APIView):
+ 
+ queryset = Job.objects.all()
 
-    permission_classes = [IsAuthenticated]
+serializer_class = JobSerializer
 
-    def get(self, request):
+permission_classes = [IsAuthenticated]
 
-        jobs = Job.objects.all()
+def perform_create(self, serializer):
 
-        serializer = JobSerializer(
-            jobs,
-            many=True
+    if self.request.user.role != 'employer':
+
+        raise PermissionError(
+            'Only employers can create jobs'
         )
 
-        return Response(serializer.data)
+    employer_profile = EmployerProfile.objects.get(
+        user=self.request.user
+    )
 
-    def post(self, request):
-
-        if request.user.role != 'employer':
-
-            return Response({
-
-                'error': 'Only employers can create jobs'
-
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        try:
-
-            employer_profile = EmployerProfile.objects.get(
-                user=request.user
-            )
-
-        except EmployerProfile.DoesNotExist:
-
-            return Response({
-
-                'error': 'Employer profile not found'
-
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        data = request.data.copy()
-
-        data['employer'] = employer_profile.id
-
-        serializer = JobSerializer(
-            data=data
-        )
-
-        if serializer.is_valid():
-
-            serializer.save()
-
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
-
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    serializer.save(
+        employer=employer_profile
+    )
 
 
-class JobDetailView(APIView):
+class JobDetailView(
+generics.RetrieveUpdateDestroyAPIView
+):
 
-    permission_classes = [IsAuthenticated]
 
-    def get_object(self, pk):
+ queryset = Job.objects.all()
 
-        try:
+serializer_class = JobSerializer
 
-            return Job.objects.get(pk=pk)
+permission_classes = [IsAuthenticated]
 
-        except Job.DoesNotExist:
-
-            return None
-
-    def get(self, request, pk):
-
-        job = self.get_object(pk)
-
-        if job is None:
-
-            return Response({
-
-                'error': 'Job not found'
-
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = JobSerializer(job)
-
-        return Response(serializer.data)
-
-    def put(self, request, pk):
-
-        job = self.get_object(pk)
-
-        if job is None:
-
-            return Response({
-
-                'error': 'Job not found'
-
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = JobSerializer(
-            job,
-            data=request.data,
-            partial=True
-        )
-
-        if serializer.is_valid():
-
-            serializer.save()
-
-            return Response(serializer.data)
-
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    def delete(self, request, pk):
-
-        job = self.get_object(pk)
-
-        if job is None:
-
-            return Response({
-
-                'error': 'Job not found'
-
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        job.delete()
-
-        return Response({
-
-            'message': 'Job deleted successfully'
-
-        })

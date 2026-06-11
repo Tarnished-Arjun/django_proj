@@ -1,81 +1,71 @@
+from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
-from .serializers import RegisterSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-
 from rest_framework.permissions import IsAuthenticated
+
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import User
 from .serializers import RegisterSerializer
 
+class RegisterView(generics.CreateAPIView):
 
-class RegisterView(APIView):
 
-    def post(self, request):
+ queryset = User.objects.all()
 
-        serializer = RegisterSerializer(
-            data=request.data
-        )
+serializer_class = RegisterSerializer
 
-        if serializer.is_valid():
 
-            serializer.save()
-
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
-
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
 class LoginView(APIView):
 
-    def post(self, request):
 
-        username = request.data.get('username')
-        password = request.data.get('password')
+ def post(self, request):
 
-        user = authenticate(
-            username=username,
-            password=password
+    username = request.data.get('username')
+
+    password = request.data.get('password')
+
+    user = authenticate(
+        username=username,
+        password=password
+    )
+
+    if user is None:
+
+        return Response(
+            {
+                'error': 'Invalid credentials'
+            },
+            status=status.HTTP_401_UNAUTHORIZED
         )
 
-        if user is None:
+    refresh = RefreshToken.for_user(user)
 
-            return Response(
-                {
-                    'error': 'Invalid credentials'
-                },
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+    return Response({
 
-        refresh = RefreshToken.for_user(user)
+        'refresh': str(refresh),
 
-        return Response({
+        'access': str(refresh.access_token),
 
-            'refresh': str(refresh),
+        'username': user.username,
 
-            'access': str(refresh.access_token),
+        'role': user.role
 
-            'username': user.username,
+    })
 
-            'role': user.role
 
-        })
-    
 class CurrentUserView(APIView):
 
-    permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+ permission_classes = [IsAuthenticated]
 
-        serializer = RegisterSerializer(
-            request.user
-        )
+def get(self, request):
 
-        return Response(serializer.data)
+    serializer = RegisterSerializer(
+        request.user
+    )
+
+    return Response(serializer.data)
+

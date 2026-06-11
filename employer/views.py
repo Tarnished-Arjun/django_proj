@@ -1,70 +1,66 @@
-from rest_framework.views import APIView
-
-from rest_framework.response import Response
-
-from rest_framework import status
-
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from .models import EmployerProfile
-
 from .serializers import EmployerProfileSerializer
 
+class EmployerProfileView(
+generics.GenericAPIView
+):
 
-class EmployerProfileView(APIView):
 
-    permission_classes = [IsAuthenticated]
+ serializer_class = EmployerProfileSerializer
 
-    def post(self, request):
+permission_classes = [IsAuthenticated]
 
-        if request.user.role != 'employer':
+def get(self, request):
 
-            return Response({
+    profile = EmployerProfile.objects.get(
+        user=request.user
+    )
 
-                'error': 'Only employers can create profiles'
+    serializer = self.get_serializer(
+        profile
+    )
 
-            }, status=status.HTTP_403_FORBIDDEN)
+    return Response(serializer.data)
 
-        data = request.data.copy()
+def post(self, request):
 
-        data['user'] = request.user.id
+    serializer = self.get_serializer(
+        data=request.data
+    )
 
-        serializer = EmployerProfileSerializer(
-            data=data
-        )
+    serializer.is_valid(
+        raise_exception=True
+    )
 
-        if serializer.is_valid():
+    serializer.save(
+        user=request.user
+    )
 
-            serializer.save()
+    return Response(
+        serializer.data,
+        status=status.HTTP_201_CREATED
+    )
 
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
+def put(self, request):
 
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    profile = EmployerProfile.objects.get(
+        user=request.user
+    )
 
-    def get(self, request):
+    serializer = self.get_serializer(
+        profile,
+        data=request.data,
+        partial=True
+    )
 
-        try:
+    serializer.is_valid(
+        raise_exception=True
+    )
 
-            profile = EmployerProfile.objects.get(
-                user=request.user
-            )
+    serializer.save()
 
-            serializer = EmployerProfileSerializer(
-                profile
-            )
+    return Response(serializer.data)
 
-            return Response(serializer.data)
-
-        except EmployerProfile.DoesNotExist:
-
-            return Response({
-
-                'error': 'Employer profile not found'
-
-            }, status=status.HTTP_404_NOT_FOUND)
