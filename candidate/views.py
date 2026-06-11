@@ -1,13 +1,9 @@
 from rest_framework.views import APIView
-
 from rest_framework.response import Response
-
 from rest_framework import status
-
 from rest_framework.permissions import IsAuthenticated
 
 from .models import CandidateProfile
-
 from .serializers import CandidateProfileSerializer
 
 
@@ -18,15 +14,21 @@ class CandidateProfileView(APIView):
     def post(self, request):
 
         if request.user.role != 'candidate':
+            return Response(
+                {'error': 'Only candidates can create profiles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-            return Response({
+        if CandidateProfile.objects.filter(
+            user=request.user
+        ).exists():
 
-                'error': 'Only candidates can create profiles'
-
-            }, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'error': 'Profile already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         data = request.data.copy()
-
         data['user'] = request.user.id
 
         serializer = CandidateProfileSerializer(
@@ -63,8 +65,39 @@ class CandidateProfileView(APIView):
 
         except CandidateProfile.DoesNotExist:
 
-            return Response({
+            return Response(
+                {'error': 'Profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-                'error': 'Profile not found'
+    def put(self, request):
 
-            }, status=status.HTTP_404_NOT_FOUND)
+        try:
+
+            profile = CandidateProfile.objects.get(
+                user=request.user
+            )
+
+        except CandidateProfile.DoesNotExist:
+
+            return Response(
+                {'error': 'Profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CandidateProfileSerializer(
+            profile,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+
+            serializer.save()
+
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
