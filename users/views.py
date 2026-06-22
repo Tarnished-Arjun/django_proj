@@ -2,7 +2,10 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import (
+    IsAuthenticated,
+    AllowAny
+)
 
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -10,62 +13,63 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
 from .serializers import RegisterSerializer
 
+
 class RegisterView(generics.CreateAPIView):
 
+    queryset = User.objects.all()
 
- queryset = User.objects.all()
+    serializer_class = RegisterSerializer
 
-serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
 
 
 class LoginView(APIView):
 
+    permission_classes = [AllowAny]
 
- def post(self, request):
+    def post(self, request):
 
-    username = request.data.get('username')
+        username = request.data.get('username')
 
-    password = request.data.get('password')
+        password = request.data.get('password')
 
-    user = authenticate(
-        username=username,
-        password=password
-    )
-
-    if user is None:
-
-        return Response(
-            {
-                'error': 'Invalid credentials'
-            },
-            status=status.HTTP_401_UNAUTHORIZED
+        user = authenticate(
+            username=username,
+            password=password
         )
 
-    refresh = RefreshToken.for_user(user)
+        if user is None:
 
-    return Response({
+            return Response(
+                {
+                    'error': 'Invalid credentials'
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
-        'refresh': str(refresh),
+        refresh = RefreshToken.for_user(user)
 
-        'access': str(refresh.access_token),
+        return Response({
 
-        'username': user.username,
+            'refresh': str(refresh),
 
-        'role': user.role
+            'access': str(refresh.access_token),
 
-    })
+            'username': user.username,
+
+            'role': user.role
+
+        })
 
 
 class CurrentUserView(APIView):
 
+    permission_classes = [IsAuthenticated]
 
- permission_classes = [IsAuthenticated]
+    def get(self, request):
 
-def get(self, request):
+        serializer = RegisterSerializer(
+            request.user
+        )
 
-    serializer = RegisterSerializer(
-        request.user
-    )
-
-    return Response(serializer.data)
-
+        return Response(serializer.data)

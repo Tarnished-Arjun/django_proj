@@ -6,42 +6,40 @@ from .serializers import JobSerializer
 
 from employer.models import EmployerProfile
 
+
 class JobListCreateView(
-generics.ListCreateAPIView
+    generics.ListCreateAPIView
 ):
 
- 
- queryset = Job.objects.all()
+    queryset = Job.objects.all()
 
-serializer_class = JobSerializer
+    serializer_class = JobSerializer
 
-permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
-def perform_create(self, serializer):
+    def perform_create(self, serializer):
 
-    if self.request.user.role != 'employer':
+        if self.request.user.role != 'employer':
 
-        raise PermissionError(
-            'Only employers can create jobs'
+            raise PermissionError(
+                'Only employers can create jobs'
+            )
+
+        employer_profile = EmployerProfile.objects.get(
+            user=self.request.user
         )
 
-    employer_profile = EmployerProfile.objects.get(
-        user=self.request.user
-    )
-
-    serializer.save(
-        employer=employer_profile
-    )
+        serializer.save(
+            employer=employer_profile
+        )
 
 
 class JobDetailView(
-generics.RetrieveUpdateDestroyAPIView
+    generics.RetrieveUpdateDestroyAPIView
 ):
 
+    queryset = Job.objects.all()
 
- queryset = Job.objects.all()
+    serializer_class = JobSerializer
 
-serializer_class = JobSerializer
-
-permission_classes = [IsAuthenticated]
-
+    permission_classes = [IsAuthenticated]

@@ -4,31 +4,24 @@ from rest_framework.permissions import IsAuthenticated
 from .models import CandidateProfile
 from .serializers import CandidateProfileSerializer
 
+
 class CandidateProfileView(
-generics.RetrieveUpdateAPIView,
-generics.CreateAPIView
+    generics.RetrieveUpdateAPIView,
+    generics.CreateAPIView
 ):
- 
- 
- serializer_class = CandidateProfileSerializer
 
-permission_classes = [IsAuthenticated]
+    serializer_class = CandidateProfileSerializer
 
-def get_object(self):
+    permission_classes = [IsAuthenticated]
 
-    return CandidateProfile.objects.get(
-        user=self.request.user
-    )
+    def get_object(self):
 
-def perform_create(self, serializer):
-
-    if self.request.user.role != 'candidate':
-
-        raise PermissionError(
-            "Only candidates can create profiles"
+        return CandidateProfile.objects.get(
+            user=self.request.user
         )
 
-    serializer.save(
-        user=self.request.user
-    )
+    def perform_create(self, serializer):
 
+        serializer.save(
+            user=self.request.user
+        )
