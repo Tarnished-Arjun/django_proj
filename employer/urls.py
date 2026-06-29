@@ -6,7 +6,8 @@ urlpatterns = [
 
     path(
         'profile/',
-        EmployerProfileView.as_view()
+        EmployerProfileView.as_view(),
+        name="employer-profile"
     ),
 
 ]

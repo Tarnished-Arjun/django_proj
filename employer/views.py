@@ -1,66 +1,62 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 
 from .models import EmployerProfile
 from .serializers import EmployerProfileSerializer
 
-class EmployerProfileView(
-generics.GenericAPIView
-):
 
+class EmployerProfileView(generics.GenericAPIView):
 
- serializer_class = EmployerProfileSerializer
+    serializer_class = EmployerProfileSerializer
+    permission_classes = [IsAuthenticated]
 
-permission_classes = [IsAuthenticated]
+    def get(self, request):
 
-def get(self, request):
+        profile = EmployerProfile.objects.get(
+            user=request.user
+        )
 
-    profile = EmployerProfile.objects.get(
-        user=request.user
-    )
+        serializer = self.get_serializer(profile)
 
-    serializer = self.get_serializer(
-        profile
-    )
+        return Response(serializer.data)
 
-    return Response(serializer.data)
+    def post(self, request):
 
-def post(self, request):
+        serializer = self.get_serializer(
+            data=request.data
+        )
 
-    serializer = self.get_serializer(
-        data=request.data
-    )
+        serializer.is_valid(
+            raise_exception=True
+        )
 
-    serializer.is_valid(
-        raise_exception=True
-    )
+        serializer.save(
+            user=request.user
+        )
 
-    serializer.save(
-        user=request.user
-    )
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED
+        )
 
-    return Response(
-        serializer.data,
-        status=status.HTTP_201_CREATED
-    )
+    def put(self, request):
 
-def put(self, request):
+        profile = EmployerProfile.objects.get(
+            user=request.user
+        )
 
-    profile = EmployerProfile.objects.get(
-        user=request.user
-    )
+        serializer = self.get_serializer(
+            profile,
+            data=request.data,
+            partial=True
+        )
 
-    serializer = self.get_serializer(
-        profile,
-        data=request.data,
-        partial=True
-    )
+        serializer.is_valid(
+            raise_exception=True
+        )
 
-    serializer.is_valid(
-        raise_exception=True
-    )
+        serializer.save()
 
-    serializer.save()
-
-    return Response(serializer.data)
-
+        return Response(serializer.data)
