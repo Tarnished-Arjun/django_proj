@@ -1,5 +1,5 @@
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -60,3 +60,8 @@ class EmployerProfileView(generics.GenericAPIView):
         serializer.save()
 
         return Response(serializer.data)
+
+class EmployerListView(generics.ListAPIView):
+    queryset = EmployerProfile.objects.all()
+    serializer_class = EmployerProfileSerializer
+    permission_classes = [IsAdminUser]

@@ -16,9 +16,10 @@ class ApplyJobView(APIView):
 
  permission_classes = [IsAuthenticated]
 
-def post(self, request, job_id):
+ def post(self, request, job_id):
 
     if request.user.role != 'candidate':
+        print('Hello')
 
         return Response(
             {
@@ -93,9 +94,9 @@ generics.ListAPIView
 
   serializer_class = JobApplicationSerializer
 
-permission_classes = [IsAuthenticated]
+  permission_classes = [IsAuthenticated]
 
-def get_queryset(self):
+  def get_queryset(self):
 
     candidate_profile = CandidateProfile.objects.get(
         user=self.request.user
@@ -111,11 +112,11 @@ generics.ListAPIView
 ):
 
 
- serializer_class = JobApplicationSerializer
+  serializer_class = JobApplicationSerializer
 
-permission_classes = [IsAuthenticated]
+  permission_classes = [IsAuthenticated]
 
-def get_queryset(self):
+  def get_queryset(self):
 
     employer_profile = EmployerProfile.objects.get(
         user=self.request.user

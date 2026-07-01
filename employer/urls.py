@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import EmployerProfileView
+from .views import EmployerProfileView,EmployerListView
 
 urlpatterns = [
 
@@ -8,6 +8,12 @@ urlpatterns = [
         'profile/',
         EmployerProfileView.as_view(),
         name="employer-profile"
+    ),
+
+     path(
+        "all/",
+        EmployerListView.as_view(),
+        name="employer-list"
     ),
 
 ]
